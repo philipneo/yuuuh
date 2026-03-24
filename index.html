@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fat Loss Workout Tracker</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #94a3b8;
+      --text: #e2e8f0;
+      --accent: #22c55e;
+      --danger: #ef4444;
+      --border: #1f2937;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: linear-gradient(180deg, #020617, #0b1120);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: color-mix(in srgb, var(--card) 92%, black);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin-top: -6px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    input, select, button {
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #0b1220;
+      color: var(--text);
+      padding: 10px;
+      font-size: 0.95rem;
+    }
+
+    button {
+      cursor: pointer;
+      border-color: transparent;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #052e16;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: #0b1220;
+      border: 1px solid #243244;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #1e293b;
+      font-size: 0.95rem;
+    }
+
+    th { color: var(--muted); font-weight: 600; }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 20px;
+      border: 1px dashed #334155;
+      border-radius: 10px;
+    }
+
+    .row-actions {
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>Fat Loss Workout Tracker</h1>
+      <p class="sub">Log sessions, calories burned, and stay consistent week to week.</p>
+
+      <form id="workout-form" class="grid" autocomplete="off">
+        <label>Date
+          <input type="date" id="date" required />
+        </label>
+        <label>Workout Type
+          <select id="type" required>
+            <option value="Strength">Strength</option>
+            <option value="HIIT">HIIT</option>
+            <option value="Cardio">Cardio</option>
+            <option value="Walk">Walk</option>
+            <option value="Sport">Sport</option>
+          </select>
+        </label>
+        <label>Minutes
+          <input type="number" id="minutes" min="1" placeholder="45" required />
+        </label>
+        <label>Calories Burned
+          <input type="number" id="calories" min="0" placeholder="350" required />
+        </label>
+        <label>Notes
+          <input type="text" id="notes" maxlength="100" placeholder="Leg day + incline walk" />
+        </label>
+        <label style="align-self:end;">
+          <button class="btn-primary" type="submit">Add Workout</button>
+        </label>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Progress</h2>
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-label">Total Workouts</div>
+          <div class="stat-value" id="total-workouts">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Total Minutes</div>
+          <div class="stat-value" id="total-minutes">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Total Calories</div>
+          <div class="stat-value" id="total-calories">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">This Week</div>
+          <div class="stat-value" id="week-workouts">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Workout History</h2>
+      <div id="history"></div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'fat-loss-workouts-v1';
+
+    const form = document.getElementById('workout-form');
+    const historyEl = document.getElementById('history');
+
+    const statTotalWorkouts = document.getElementById('total-workouts');
+    const statTotalMinutes = document.getElementById('total-minutes');
+    const statTotalCalories = document.getElementById('total-calories');
+    const statWeekWorkouts = document.getElementById('week-workouts');
+
+    function getWorkouts() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    function saveWorkouts(workouts) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(workouts));
+    }
+
+    function weekStart(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      return monday;
+    }
+
+    function renderStats(workouts) {
+      const totalMinutes = workouts.reduce((sum, w) => sum + Number(w.minutes), 0);
+      const totalCalories = workouts.reduce((sum, w) => sum + Number(w.calories), 0);
+      const nowWeek = weekStart(new Date());
+
+      const thisWeek = workouts.filter((w) => {
+        const d = new Date(w.date + 'T00:00:00');
+        return d >= nowWeek;
+      }).length;
+
+      statTotalWorkouts.textContent = workouts.length;
+      statTotalMinutes.textContent = totalMinutes;
+      statTotalCalories.textContent = totalCalories;
+      statWeekWorkouts.textContent = thisWeek;
+    }
+
+    function removeWorkout(id) {
+      const workouts = getWorkouts().filter((w) => w.id !== id);
+      saveWorkouts(workouts);
+      render();
+    }
+
+    function renderTable(workouts) {
+      if (!workouts.length) {
+        historyEl.innerHTML = '<div class="empty">No workouts yet. Add your first session above.</div>';
+        return;
+      }
+
+      const rows = workouts
+        .sort((a, b) => (a.date < b.date ? 1 : -1))
+        .map((w) => `
+          <tr>
+            <td>${w.date}</td>
+            <td>${w.type}</td>
+            <td>${w.minutes}</td>
+            <td>${w.calories}</td>
+            <td>${w.notes || '-'}</td>
+            <td class="row-actions">
+              <button class="btn-danger" data-id="${w.id}">Delete</button>
+            </td>
+          </tr>
+        `)
+        .join('');
+
+      historyEl.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Minutes</th>
+              <th>Calories</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+
+      historyEl.querySelectorAll('[data-id]').forEach((btn) => {
+        btn.addEventListener('click', () => removeWorkout(btn.dataset.id));
+      });
+    }
+
+    function render() {
+      const workouts = getWorkouts();
+      renderStats(workouts);
+      renderTable(workouts);
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const workout = {
+        id: crypto.randomUUID(),
+        date: document.getElementById('date').value,
+        type: document.getElementById('type').value,
+        minutes: Number(document.getElementById('minutes').value),
+        calories: Number(document.getElementById('calories').value),
+        notes: document.getElementById('notes').value.trim(),
+      };
+
+      const workouts = getWorkouts();
+      workouts.push(workout);
+      saveWorkouts(workouts);
+      form.reset();
+      document.getElementById('date').valueAsDate = new Date();
+      render();
+    });
+
+    document.getElementById('date').valueAsDate = new Date();
+    render();
+  </script>
+</body>
+</html>
